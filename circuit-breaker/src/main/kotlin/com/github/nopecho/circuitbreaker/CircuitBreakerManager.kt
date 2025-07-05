@@ -1,9 +1,11 @@
 package com.github.nopecho.circuitbreaker
 
+import com.github.nopecho.circuitbreaker.config.DEFAULT_CIRCUIT_BREAKER
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import kotlin.jvm.optionals.getOrNull
 
 /**
  * 서킷 브레이커를 관리하고 작업 블록 실행 시 서킷 브레이커를 적용하는 기능을 제공하는 클래스.
@@ -32,8 +34,14 @@ class CircuitBreakerManager(
      * @see io.github.resilience4j.circuitbreaker.CircuitBreaker
      * @see CircuitBreakerManager.fallback
      */
-    fun <T> execute(name: String, block: () -> T): Result<T> {
-        val circuitBreaker = registry.circuitBreaker(name)
+    fun <T> execute(
+        name: String = DEFAULT_CIRCUIT_BREAKER,
+        block: () -> T
+    ): Result<T> {
+        val circuitBreaker = registry.getConfiguration(name).getOrNull()
+            ?.let { registry.circuitBreaker(name, it) }
+            ?: registry.circuitBreaker(DEFAULT_CIRCUIT_BREAKER)
+
         return runCatching {
             circuitBreaker.executeSupplier(block)
         }.onFailure { exception ->
