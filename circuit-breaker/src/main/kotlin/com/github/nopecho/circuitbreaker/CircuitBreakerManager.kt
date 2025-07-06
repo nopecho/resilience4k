@@ -1,6 +1,6 @@
 package com.github.nopecho.circuitbreaker
 
-import com.github.nopecho.circuitbreaker.config.DEFAULT_CIRCUIT_BREAKER
+import com.github.nopecho.circuitbreaker.config.ResilienceConfig.Companion.DEFAULT_CIRCUIT_BREAKER
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
 import org.slf4j.LoggerFactory
@@ -19,7 +19,32 @@ class CircuitBreakerManager(
 ) {
 
     companion object {
+
         private val logger = LoggerFactory.getLogger(this::class.java)
+
+        /**
+         * [Result]의 실패 상태를 처리하여 대체 동작을 수행합니다.
+         *
+         * 이 메서드는 [Result] 객체의 값이 성공적으로 반환된 경우 해당 값을 반환하고,
+         * 실패한 경우 예외를 확인하여 서킷이 열려 [CallNotPermittedException]일 때 제공된 [block]을 실행하여 대체 값을 반환합니다.
+         * 만약 [CallNotPermittedException]이 아닌 예외가 발생했을 경우 그대로 다시 예외를 던집니다.
+         *
+         * @param block [CallNotPermittedException]이 발생한 경우 실행할 대체 동작 블록.
+         * @return 성공 시 [Result]의 값, 또는 [block]의 결과 값.
+         * @throws Throwable [CallNotPermittedException]이 아닌 다른 예외가 발생한 경우 해당 예외를 전달.
+         */
+        internal fun <T> Result<T>.fallback(block: () -> T): T {
+            return this.fold(
+                onSuccess = { it },
+                onFailure = { exception ->
+                    if (exception is CallNotPermittedException) {
+                        block()
+                    } else {
+                        throw exception
+                    }
+                }
+            )
+        }
     }
 
     /**
@@ -34,7 +59,7 @@ class CircuitBreakerManager(
      * @see io.github.resilience4j.circuitbreaker.CircuitBreaker
      * @see CircuitBreakerManager.fallback
      */
-    fun <T> execute(
+    fun <T> executeWithCircuit(
         name: String = DEFAULT_CIRCUIT_BREAKER,
         block: () -> T
     ): Result<T> {
@@ -44,32 +69,8 @@ class CircuitBreakerManager(
 
         return runCatching {
             circuitBreaker.executeSupplier(block)
-        }.onFailure { exception ->
-            logger.error("Circuit breaker [{}]: failed with exception: ${exception.message}", name, exception)
+        }.onFailure { e ->
+            logger.error("Circuit breaker [{}]: failed with exception: {}", name, e.message, e)
         }
-    }
-
-    /**
-     * [Result]의 실패 상태를 처리하여 대체 동작을 수행합니다.
-     *
-     * 이 메서드는 [Result] 객체의 값이 성공적으로 반환된 경우 해당 값을 반환하고,
-     * 실패한 경우 예외를 확인하여 서킷이 열려 [CallNotPermittedException]일 때 제공된 [block]을 실행하여 대체 값을 반환합니다.
-     * 만약 [CallNotPermittedException]이 아닌 예외가 발생했을 경우 그대로 다시 예외를 던집니다.
-     *
-     * @param block [CallNotPermittedException]이 발생한 경우 실행할 대체 동작 블록.
-     * @return 성공 시 [Result]의 값, 또는 [block]의 결과 값.
-     * @throws Throwable [CallNotPermittedException]이 아닌 다른 예외가 발생한 경우 해당 예외를 전달.
-     */
-    fun <T> Result<T>.fallback(block: () -> T): T {
-        return this.fold(
-            onSuccess = { it },
-            onFailure = { exception ->
-                if (exception is CallNotPermittedException) {
-                    block()
-                } else {
-                    throw exception
-                }
-            }
-        )
     }
 }
