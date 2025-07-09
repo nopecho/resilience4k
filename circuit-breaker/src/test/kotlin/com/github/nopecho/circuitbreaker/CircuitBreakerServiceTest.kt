@@ -1,6 +1,6 @@
 package com.github.nopecho.circuitbreaker
 
-import com.github.nopecho.circuitbreaker.CircuitBreakerManager.Companion.fallback
+import com.github.nopecho.circuitbreaker.CircuitBreakerService.Companion.fallback
 import io.github.resilience4j.circuitbreaker.CircuitBreaker
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
@@ -15,10 +15,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import java.time.Duration
 
 @SpringBootTest
-class CircuitBreakerManagerTest {
+class CircuitBreakerServiceTest {
 
     @Autowired
-    private lateinit var sut: CircuitBreakerManager
+    private lateinit var sut: CircuitBreakerService
 
     @Autowired
     private lateinit var registry: CircuitBreakerRegistry

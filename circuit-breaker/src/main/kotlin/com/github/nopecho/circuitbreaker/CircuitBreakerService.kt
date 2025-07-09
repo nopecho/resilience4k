@@ -14,7 +14,7 @@ import kotlin.jvm.optionals.getOrNull
  * @see io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
  */
 @Component
-class CircuitBreakerManager(
+class CircuitBreakerService(
     private val registry: CircuitBreakerRegistry
 ) {
 
@@ -51,26 +51,26 @@ class CircuitBreakerManager(
      * 지정된 이름의 서킷 브레이커를 사용하여 주어진 작업 블록을 실행합니다.
      * 작업 수행 중 예외 발생 시 로깅을 처리합니다.
      *
-     * @param name 서킷 브레이커의 이름.
+     * @param circuitName 서킷 브레이커의 이름.
      * @param block 실행할 작업의 블록. 반환값이 있는 함수여야 합니다.
      * @return 작업 실행 결과를 감싸는 [Result] 객체. 성공 시 결과 값을, 실패 시 예외를 포함합니다.
      * @throws CallNotPermittedException 호출이 서킷 브레이커에 의해 차단된 경우 발생.
      *
      * @see io.github.resilience4j.circuitbreaker.CircuitBreaker
-     * @see CircuitBreakerManager.fallback
+     * @see CircuitBreakerService.fallback
      */
     fun <T> executeWithCircuit(
-        name: String = DEFAULT_CIRCUIT_BREAKER,
+        circuitName: String = DEFAULT_CIRCUIT_BREAKER,
         block: () -> T
     ): Result<T> {
-        val circuitBreaker = registry.getConfiguration(name).getOrNull()
-            ?.let { registry.circuitBreaker(name, it) }
+        val circuitBreaker = registry.getConfiguration(circuitName).getOrNull()
+            ?.let { registry.circuitBreaker(circuitName, it) }
             ?: registry.circuitBreaker(DEFAULT_CIRCUIT_BREAKER)
 
         return runCatching {
             circuitBreaker.executeSupplier(block)
         }.onFailure { e ->
-            logger.error("Circuit breaker [{}]: failed with exception: {}", name, e.message, e)
+            logger.error("Circuit breaker [{}]: failed with exception: {}", circuitName, e.message, e)
         }
     }
 }
