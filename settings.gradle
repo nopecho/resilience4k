@@ -1,3 +1,4 @@
 rootProject.name = "resilience4k"
 include 'circuit-breaker'
 include 'retry'
+include 'example'
