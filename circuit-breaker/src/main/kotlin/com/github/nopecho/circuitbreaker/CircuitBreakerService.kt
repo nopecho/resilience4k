@@ -33,7 +33,7 @@ class CircuitBreakerService(
          * @return 성공 시 [Result]의 값, 또는 [block]의 결과 값.
          * @throws Throwable [CallNotPermittedException]이 아닌 다른 예외가 발생한 경우 해당 예외를 전달.
          */
-        internal fun <T> Result<T>.fallback(block: () -> T): T {
+        fun <T> Result<T>.fallback(block: () -> T): T {
             return this.fold(
                 onSuccess = { it },
                 onFailure = { exception ->
