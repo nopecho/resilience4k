@@ -1,4 +1,7 @@
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation(project(":circuit-breaker"))
+
+    testImplementation("org.springframework.restdocs:spring-restdocs-restassured")
+    testImplementation("io.rest-assured:kotlin-extensions")
 }
